@@ -6,7 +6,7 @@ np = NeoPixel(Pin(48, Pin.OUT), 1)
 n = 1
 
 
-def startup(startup_color):
+def startup_lighting(startup_color):
     np[0] = (0, 0, 0)
     np.write()
 

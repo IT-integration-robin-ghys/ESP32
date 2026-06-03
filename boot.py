@@ -28,7 +28,7 @@ except Exception as e:
     print("Problem reading settings: ", e)
 
 # Startup lighting effect
-functions.startup(settings.get("startup_light_color", None))
+functions.startup_lighting(settings.get("startup_light_color", None))
 
 # EXecute all files in files list
 if len(files) > 1:
