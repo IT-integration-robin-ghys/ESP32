@@ -27,8 +27,10 @@ try:
 except Exception as e:
     print("Problem reading settings: ", e)
 
+# Startup lighting effect
 functions.startup(settings.get("startup_light_color", None))
 
+# EXecute all files in files list
 if len(files) > 1:
     print('The device have %d files' % len(files))
     for i in range(len(files)):
