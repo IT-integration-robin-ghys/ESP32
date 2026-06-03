@@ -1,12 +1,16 @@
 import os
 import json
+import functions
 
-files = os.listdir()
 
 default_settings = {
-    "Test": 1
+    "startup_light_color": [255, 255, 255],  # Default white as color
 }
 
+# Read all files
+files = os.listdir()
+
+# Create settings.json if it doesn't exist yet
 if "settings.json" not in files:
     try:
         with open("settings.json", "w") as f:
@@ -15,6 +19,15 @@ if "settings.json" not in files:
         files.append("settings.json")
     except Exception as e:
         print("Something went wrong while creating the settings file: "+e)
+
+# Read settings.json
+try:
+    with open("settings.json", "r") as f:
+        settings = json.load(f)
+except Exception as e:
+    print("Problem reading settings: ", e)
+
+functions.startup(settings.get("startup_light_color", None))
 
 if len(files) > 1:
     print('The device have %d files' % len(files))
