@@ -7,13 +7,7 @@ n = 1
 
 
 def startup(startup_color):
-    try:
-        color = tuple(
-            int(c) for c in startup_color) if startup_color is not None else (127, 0, 0)
-    except Exception:
-        color = (127, 0, 0)
-
-    np[0] = color
+    np[0] = (0, 0, 0)
     np.write()
 
     for i in range(0, 4 * 256, 8):
@@ -22,7 +16,21 @@ def startup(startup_color):
                 val = i & 0xff
             else:
                 val = 255 - (i & 0xff)
-            np[j] = (val, 0, 0)
+
+            factor = val / 255
+            np[j] = (
+                int(startup_color[0] * factor),
+                int(startup_color[1] * factor),
+                int(startup_color[2] * factor),
+            )
         np.write()
         time.sleep_ms(5)
+    turn_off_neopixel()
+    return
+
+
+def turn_off_neopixel():
+    print("Turn off neopixel")
+    np[0] = (0, 0, 0)
+    np.write()
     return
