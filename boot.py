@@ -1,7 +1,7 @@
 import os
 
 files = os.listdir()
-if len(files) >= 2:
+if len(files) > 1:
     print('The device have %d files' % len(files))
     for i in range(len(files)):
         if files[i] != 'boot.py':
