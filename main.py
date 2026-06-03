@@ -32,6 +32,7 @@ while True:
     try:
         with open("settings.json", "r") as f:
             settings = json.load(f)
-        print(settings)
+        test_value = settings.get("Test", None)
+        print(test_value)
     except Exception as e:
         print("Problem reading settings: ", e)
