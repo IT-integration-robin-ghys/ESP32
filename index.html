@@ -1,11 +1,32 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Terrarium</title>
-</head>
-<body>
-    
-</body>
+
+    <script defer id="fetchData">
+      const updateData = async () => {
+        const response = await fetch("/data");
+        const data = await response.json();
+
+        document.getElementById("temperature").textContent = data.temperature;
+        document.getElementById("humidity").textContent = data.humidity;
+        document.getElementById("pressure").textContent = data.pressure;
+      };
+      updateData();
+      setInterval(updateData, 10000);
+    </script>
+  </head>
+  <body>
+    <div id="data">
+      <h1>Live data</h1>
+      <p>Temperature: <span id="temperature">-</span></p>
+      <p>Humidity: <span id="humidity">-</span></p>
+      <p>Pressure: <span id="pressure">-</span></p>
+    </div>
+    <div class="" id="connect_wifi"></div>
+
+    <div class="" id="connect_email"></div>
+  </body>
 </html>
