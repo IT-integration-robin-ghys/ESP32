@@ -10,6 +10,11 @@ np = NeoPixel(Pin(48, Pin.OUT), 1)
 n = 1
 
 
+def reboot():
+    time.sleep(10)
+    reset()
+
+
 def startup(startup_color):
     np[0] = (0, 0, 0)
     np.write()
@@ -292,8 +297,3 @@ def process_wifi(request):
 
     except Exception as e:
         print("WiFi error:", e)
-
-
-def reboot():
-    time.sleep(10)
-    reset()
