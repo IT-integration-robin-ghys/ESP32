@@ -1,9 +1,13 @@
-
-
 from machine import Pin, PWM, I2C
 from servo import Servo
 from time import sleep_ms
 import BME280
+from functions import web_page, return_data
+
+try:
+    import usocket as socket
+except:
+    import socket
 
 
 def create_pwm(pin_number, frequency=1000, duty=32768):
@@ -31,26 +35,48 @@ i2c = I2C(
     freq=10000
 )
 
+# Webserver
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.bind(('', 80))
+s.listen(5)
+s.setblocking(False)
+
 
 while True:
-    feeder_motor.move(0)
-    sleep_ms(1000)
-    feeder_motor.move(180)
-    set_duty(pwm10, 65535)
-    set_duty(pwm11, 65535)
-    set_duty(pwm12, 65535)
-    set_duty(pwm13, 65535)
-    set_duty(pwm14, 65535)
-
     bme = BME280.BME280(i2c=i2c)
-    temp = bme.temperature
-    hum = bme.humidity
-    pres = bme.pressure
-    # uncomment for temperature in Fahrenheit
-    # temp = (bme.read_temperature()/100) * (9/5) + 32
-    # temp = str(round(temp, 2)) + 'F'
-    print('Temperature: ', temp)
-    print('Humidity: ', hum)
-    print('Pressure: ', pres)
 
-    sleep_ms(1000)
+    # Look for the http requests
+    try:
+        conn, addr = s.accept()
+
+        print('Got a connection from %s' % str(addr))
+
+        request = conn.recv(1024).decode()
+        print('Content = %s' % request)
+
+        if "GET /data" in request:
+            response = return_data(bme)
+        elif "POST /wifi" in request:
+            response = "/wifi"
+        elif "POST /email" in request:
+            response = "/email"
+        else:
+            #return web page if its a regular request
+            response = web_page()
+
+        conn.send(response)
+        conn.close()
+
+    except OSError:
+        # Skip if no connections
+        pass
+
+    # don't need these for now
+    # feeder_motor.move(0)
+
+    # set_duty(pwm10, 65535)
+    # set_duty(pwm11, 65535)
+    # set_duty(pwm12, 65535)
+    # set_duty(pwm13, 65535)
+    # set_duty(pwm14, 65535)
+    # sleep_ms(1000)
