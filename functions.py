@@ -140,6 +140,9 @@ def web_page():
       <h1>Connect device to account</h1>
 
       <form id="emailForm">
+        <label for="terrarium_name">Terrarium name</label><br />
+        <input type="text" id="terrarium_name" name="terrarium_name" /><br />
+        
         <label for="email">Email address</label><br />
         <input type="email" id="email" name="email" /><br />
 
@@ -190,16 +193,22 @@ def web_page():
         e.preventDefault();
 
         const email = document.getElementById("email").value;
+        const terrarium_name = document.getElementById("terrarium_name").value;
 
-        await fetch("/email", {
+        const response = await fetch("/email", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
             email: email,
+            terrarium_name: terrarium_name,
           }),
         });
+
+        const data = await response.json();
+
+        alert(data.message);
       });
 
       updateData();
@@ -207,7 +216,6 @@ def web_page():
     </script>
   </body>
 </html>
-
 
     """
     return html
