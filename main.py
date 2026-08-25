@@ -4,12 +4,20 @@ from machine import Pin, PWM, I2C
 from servo import Servo
 from time import sleep_ms
 import BME280
-from functions import web_page, return_data, process_wifi, process_email, reboot, check_and_save_apikey
+from functions import web_page, return_data, process_wifi, process_email, reboot, check_and_save_apikey, send_sensor_data
 
 try:
     import usocket as socket
 except:
     import socket
+
+try:
+    with open("settings.json", "r") as f:
+        settings = json.load(f)
+except Exception as e:
+    print("Problem reading settings: ", e)
+
+api_key = settings.get("api_key")
 
 
 def create_pwm(pin_number, frequency=1000, duty=32768):
@@ -51,11 +59,12 @@ reboot_after_response = False
 # Flag for if terrarium request has been sent to backend
 terrarium_request_successfully_sent = False
 
+bme = BME280.BME280(i2c=i2c)
+timer_60s = 0
+
 
 while True:
-    bme = BME280.BME280(i2c=i2c)
     feeder_motor.move(0)
-
     # Look for the http requests
     try:
         conn, addr = s.accept()
@@ -96,8 +105,13 @@ while True:
 
         if terrarium_request_successfully_sent:
             check_and_save_apikey()
-            
-            
+        timer_60s += 1
+        if timer_60s >= 120:
+          timer_60s = 0
+
+          if api_key:
+              send_sensor_data(bme)
+        sleep_ms(500)
     except OSError:
         # Skip if no connections
         pass
