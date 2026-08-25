@@ -22,11 +22,11 @@ def set_duty(pwm, duty):
 
 
 feeder_motor = Servo(pin=9)
-pwm10 = create_pwm(10, frequency=1000, duty=0)
-pwm11 = create_pwm(11, frequency=1000, duty=0)
-pwm12 = create_pwm(12, frequency=1000, duty=0)
-pwm13 = create_pwm(13, frequency=1000, duty=0)
-pwm14 = create_pwm(14, frequency=1000, duty=0)
+mist_pin = create_pwm(10, frequency=1000, duty=0)
+M5_fan2 = create_pwm(11, frequency=1000, duty=0)
+M4_fan1 = create_pwm(12, frequency=1000, duty=0)
+M3_heating = create_pwm(13, frequency=1000, duty=0)
+M2_led = create_pwm(14, frequency=1000, duty=0)
 
 i2c = I2C(
     0,
@@ -34,6 +34,9 @@ i2c = I2C(
     scl=Pin(2),
     freq=10000
 )
+
+# Move servo to start position
+feeder_motor.move(0)
 
 # Webserver
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -72,7 +75,6 @@ while True:
         pass
 
     # don't need these for now
-    # feeder_motor.move(0)
 
     # set_duty(pwm10, 65535)
     # set_duty(pwm11, 65535)
