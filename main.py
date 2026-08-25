@@ -1,8 +1,10 @@
+import json
+
 from machine import Pin, PWM, I2C
 from servo import Servo
 from time import sleep_ms
 import BME280
-from functions import web_page, return_data, process_wifi, reboot
+from functions import web_page, return_data, process_wifi, process_email, reboot, check_and_save_apikey
 
 try:
     import usocket as socket
@@ -46,6 +48,8 @@ s.setblocking(False)
 
 # Flag for rebooting when wifi form is successfull
 reboot_after_response = False
+# Flag for if terrarium request has been sent to backend
+terrarium_request_successfully_sent = False
 
 
 while True:
@@ -59,14 +63,27 @@ while True:
         print('Got a connection from %s' % str(addr))
 
         request = conn.recv(1024).decode()
-        print('Content = %s' % request)
+        # print('Content = %s' % request)
 
         if "GET /data" in request:
             response = return_data(bme)
         elif "POST /wifi" in request:
             response, reboot_after_response = process_wifi(request)
         elif "POST /email" in request:
-            response = "/email"
+            if terrarium_request_successfully_sent:
+                response = (
+                    "HTTP/1.1 400 Bad Request\r\n"
+                    "Content-Type: application/json\r\n"
+                    "Connection: close\r\n"
+                    "\r\n"
+                    + json.dumps({
+                        "success": False,
+                        "message": "Terrarium request has already been sent"
+                    })
+                )
+            else:
+                response, terrarium_request_successfully_sent = process_email(
+                    request)
         else:
             # return web page if its a regular request
             response = web_page()
@@ -77,6 +94,10 @@ while True:
         if reboot_after_response:
             reboot()
 
+        if terrarium_request_successfully_sent:
+            check_and_save_apikey()
+            
+            
     except OSError:
         # Skip if no connections
         pass
