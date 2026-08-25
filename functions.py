@@ -390,3 +390,117 @@ def process_email(request):
                 "success": False
             }), False
         )
+
+
+def check_and_save_apikey():
+    try:
+        host = "192.168.0.126"
+        port = 8080
+
+        # Read settings
+        try:
+            with open("settings.json", "r") as f:
+                settings = json.load(f)
+        except Exception as e:
+            print("Problem reading settings: ", e)
+
+        # Stop this function if we have an API key in settings.json
+        if settings.get("api_key"):
+            return True
+
+        device_id = settings.get("device_id")
+
+        if not device_id:
+            print("No device_id configured")
+            return False
+
+        addr = socket.getaddrinfo(
+            host,
+            port,
+            0,
+            socket.SOCK_STREAM
+        )[0][-1]
+
+        s = socket.socket()
+        s.connect(addr)
+
+        request = (
+            "GET /terrariums/link/{} HTTP/1.1\r\n"
+            "Host: {}\r\n"
+            "Connection: close\r\n"
+            "\r\n"
+        ).format(
+            device_id,
+            host
+        )
+
+        s.sendall(request.encode())
+
+        response = b""
+
+        while True:
+            chunk = s.recv(1024)
+
+            if not chunk:
+                break
+
+            response += chunk
+
+        s.close()
+
+        response_text = response.decode()
+
+        print("Backend response:")
+        print(response_text)
+
+        headers, body = response_text.split("\r\n\r\n", 1)
+
+        # Check whether spring uses chunked encoding (weird 42 and stuff i kinda don't get it)
+        if "Transfer-Encoding: chunked" in headers:
+
+            decoded_body = ""
+
+            while body:
+                # First line should be size of chunk in hex
+                chunk_size_str, body = body.split("\r\n", 1)
+
+                chunk_size = int(chunk_size_str, 16)
+
+                # 0 = end of message
+                if chunk_size == 0:
+                    break
+
+                # ACTUALLY read the json data
+                decoded_body += body[:chunk_size]
+
+                # Remove chunk + CRLF
+                body = body[chunk_size + 2:]
+
+            body = decoded_body
+
+        print("Decoded body:", body)
+
+        data = json.loads(body)
+
+        print("Connection data:", data)
+
+        status = data.get("status")
+        api_key = data.get("APIKey")
+
+        # Only save is the status is accepted (there is no api key when not accepted)
+        if status == "ACCEPTED" and api_key:
+
+            settings["api_key"] = api_key
+
+            with open("settings.json", "w") as f:
+                json.dump(settings, f)
+
+            print("API key saved successfully!")
+            return True
+
+        print("Terrarium not accepted yet:", status)
+        return False
+
+    except Exception as e:
+        print("Connection check error:", e)
+        return False
