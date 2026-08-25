@@ -538,7 +538,6 @@ def send_sensor_data(bme):
             "Humidity": humidity
         })
 
-
         addr = socket.getaddrinfo(
             host,
             port,
@@ -581,11 +580,23 @@ def send_sensor_data(bme):
         s.close()
 
         # Good for testing but in comment to increase performance
-        #print("Backend response:")
-        #print(response.decode())
+        # print("Backend response:")
+        # print(response.decode())
 
         return True
 
     except Exception as e:
         print("Sensor data error:", e)
         return False
+
+
+def get_day_night(settings):
+    current_hour = time.localtime()[3]
+
+    day_start = settings.get("day", {}).get("start_time")
+    night_start = settings.get("night", {}).get("start_time")
+
+    if day_start <= current_hour < night_start:
+        return "day"
+
+    return "night"
