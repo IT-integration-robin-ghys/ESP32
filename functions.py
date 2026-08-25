@@ -504,3 +504,88 @@ def check_and_save_apikey():
     except Exception as e:
         print("Connection check error:", e)
         return False
+
+
+def send_sensor_data(bme):
+    try:
+        host = "192.168.0.126"
+        port = 8080
+
+        # Read settings
+        try:
+            with open("settings.json", "r") as f:
+                settings = json.load(f)
+        except Exception as e:
+            print("Problem reading settings: ", e)
+
+        device_id = settings.get("device_id")
+        api_key = settings.get("api_key")
+
+        if not api_key:
+            print("No API key yet")
+            return False
+
+        raw_temperature = bme.temperature
+        raw_humidity = bme.humidity
+
+        # BME280 gives '25.86C' and '43.22%' instead of just float so for the backend we need to fix that
+        temperature = float(raw_temperature.replace("C", "").strip())
+        humidity = float(raw_humidity.replace("%", "").strip())
+
+        # Create JSON body for sending the data
+        body = json.dumps({
+            "temperature": temperature,
+            "Humidity": humidity
+        })
+
+
+        addr = socket.getaddrinfo(
+            host,
+            port,
+            0,
+            socket.SOCK_STREAM
+        )[0][-1]
+
+        s = socket.socket()
+        s.connect(addr)
+
+        request = (
+            "POST /terrariums/data/{} HTTP/1.1\r\n"
+            "Host: {}\r\n"
+            "Content-Type: application/json\r\n"
+            "X-API-Key: {}\r\n"
+            "Content-Length: {}\r\n"
+            "Connection: close\r\n"
+            "\r\n"
+            "{}"
+        ).format(
+            device_id,
+            host,
+            api_key,
+            len(body),
+            body
+        )
+
+        s.sendall(request.encode())
+
+        response = b""
+
+        while True:
+            chunk = s.recv(1024)
+
+            if not chunk:
+                break
+
+            response += chunk
+
+        s.close()
+
+        # Good for testing but in comment to increase performance
+        #print("Backend response:")
+        #print(response.decode())
+
+        return True
+
+    except Exception as e:
+        print("Sensor data error:", e)
+        return False
