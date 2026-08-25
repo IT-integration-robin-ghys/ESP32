@@ -2,14 +2,16 @@
 import os
 import json
 import functions
-
+from functions import connect_wifi, start_ap
 
 default_settings = {
     "device_id": "",
     "startup_light_color": [255, 255, 255],  # Default white as color
     "wifi": {
         "SSID": "",
-        "PSWD": ""
+        "PSWD": "",
+        "AP_SSID": "Terrarium",
+        "AP_PSWD": "terrarium1234"
     }
 }
 
@@ -53,6 +55,11 @@ if not settings.get("device_id"):
     print("Generated device ID:", settings["device_id"])
 
 functions.startup(settings.get("startup_light_color", None))
+
+# Try to connect, if it fails start ap mode
+connected = connect_wifi(settings)
+if not connected:
+    start_ap(settings)
 
 if len(files) > 1:
     print('The device have %d files' % len(files))
