@@ -1,3 +1,4 @@
+
 from machine import Pin
 from neopixel import NeoPixel
 import time
@@ -6,7 +7,7 @@ np = NeoPixel(Pin(48, Pin.OUT), 1)
 n = 1
 
 
-def startup_lighting(startup_color):
+def startup(startup_color):
     np[0] = (0, 0, 0)
     np.write()
 
