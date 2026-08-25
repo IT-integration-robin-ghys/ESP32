@@ -160,7 +160,7 @@ def web_page():
         const ssid = document.getElementById("ssid").value;
         const password = document.getElementById("password").value;
 
-        await fetch("/wifi", {
+        const response = await fetch("/wifi", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -170,6 +170,13 @@ def web_page():
             password: password,
           }),
         });
+        const data = await response.json();
+
+        data.success
+          ? alert(
+              `Connection successfull, you can connect through the new ip: ${data.ip}`,
+            )
+          : alert(`Connecting to wifi failed`);
       });
 
       const emailForm = document.getElementById("emailForm");
@@ -196,9 +203,9 @@ def web_page():
   </body>
 </html>
 
+
     """
     return html
-
 
 
 def return_data(bme):
