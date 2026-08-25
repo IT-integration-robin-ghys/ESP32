@@ -5,6 +5,7 @@ import functions
 
 
 default_settings = {
+    "device_id": "",
     "startup_light_color": [255, 255, 255],  # Default white as color
 }
 
@@ -27,6 +28,22 @@ try:
         settings = json.load(f)
 except Exception as e:
     print("Problem reading settings: ", e)
+
+# Generate device ID if needed
+def generate_device_id():
+    random_bytes = os.urandom(16)
+
+    return "{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}".format(
+        *random_bytes
+    )
+
+if not settings.get("device_id"):
+    settings["device_id"] = generate_device_id()
+
+    with open("settings.json", "w") as f:
+        json.dump(settings, f)
+
+    print("Generated device ID:", settings["device_id"])
 
 functions.startup(settings.get("startup_light_color", None))
 
