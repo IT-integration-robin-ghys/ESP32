@@ -199,3 +199,24 @@ def web_page():
     """
     return html
 
+
+
+def return_data(bme):
+    temp = bme.temperature
+    hum = bme.humidity
+    pres = bme.pressure
+    data = {
+        "temperature": temp,
+        "humidity": hum,
+        "pressure": pres
+    }
+
+    body = json.dumps(data)
+
+    return (
+        "HTTP/1.1 200 OK\r\n"
+        "Content-Type: application/json\r\n"
+        "Connection: close\r\n"
+        "\r\n"
+        + body
+    )
