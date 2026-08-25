@@ -32,6 +32,9 @@
       <h1>Connect device to account</h1>
 
       <form id="emailForm">
+        <label for="terrarium_name">Terrarium name</label><br />
+        <input type="text" id="terrarium_name" name="terrarium_name" /><br />
+        
         <label for="email">Email address</label><br />
         <input type="email" id="email" name="email" /><br />
 
@@ -57,7 +60,7 @@
         const ssid = document.getElementById("ssid").value;
         const password = document.getElementById("password").value;
 
-        await fetch("/wifi", {
+        const response = await fetch("/wifi", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -67,6 +70,13 @@
             password: password,
           }),
         });
+        const data = await response.json();
+
+        data.success
+          ? alert(
+              `Connection successfull, you can connect through the new ip: ${data.ip}`,
+            )
+          : alert(`Connecting to wifi failed`);
       });
 
       const emailForm = document.getElementById("emailForm");
@@ -75,16 +85,22 @@
         e.preventDefault();
 
         const email = document.getElementById("email").value;
+        const terrarium_name = document.getElementById("terrarium_name").value;
 
-        await fetch("/email", {
+        const response = await fetch("/email", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
             email: email,
+            terrarium_name: terrarium_name,
           }),
         });
+
+        const data = await response.json();
+
+        alert(data.message);
       });
 
       updateData();

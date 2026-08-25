@@ -1,13 +1,19 @@
 
-from machine import Pin
+from machine import Pin, reset
 from neopixel import NeoPixel
 import time
 import network
 import json
+import socket
 
 
 np = NeoPixel(Pin(48, Pin.OUT), 1)
 n = 1
+
+
+def reboot():
+    time.sleep(10)
+    reset()
 
 
 def startup(startup_color):
@@ -135,6 +141,9 @@ def web_page():
       <h1>Connect device to account</h1>
 
       <form id="emailForm">
+        <label for="terrarium_name">Terrarium name</label><br />
+        <input type="text" id="terrarium_name" name="terrarium_name" /><br />
+
         <label for="email">Email address</label><br />
         <input type="email" id="email" name="email" /><br />
 
@@ -160,7 +169,7 @@ def web_page():
         const ssid = document.getElementById("ssid").value;
         const password = document.getElementById("password").value;
 
-        await fetch("/wifi", {
+        const response = await fetch("/wifi", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -170,6 +179,13 @@ def web_page():
             password: password,
           }),
         });
+        const data = await response.json();
+
+        data.success
+          ? alert(
+              `Connection successfull, you can connect through the new ip: ${data.ip}`,
+            )
+          : alert(`Connecting to wifi failed`);
       });
 
       const emailForm = document.getElementById("emailForm");
@@ -178,16 +194,22 @@ def web_page():
         e.preventDefault();
 
         const email = document.getElementById("email").value;
+        const terrarium_name = document.getElementById("terrarium_name").value;
 
-        await fetch("/email", {
+        const response = await fetch("/email", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
             email: email,
+            terrarium_name: terrarium_name,
           }),
         });
+
+        const data = await response.json();
+
+        alert(data.message);
       });
 
       updateData();
@@ -198,7 +220,6 @@ def web_page():
 
     """
     return html
-
 
 
 def return_data(bme):
@@ -220,3 +241,351 @@ def return_data(bme):
         "\r\n"
         + body
     )
+
+
+def process_wifi(request):
+    try:
+        # Read settings
+        try:
+            with open("settings.json", "r") as f:
+                settings = json.load(f)
+        except Exception as e:
+            print("Problem reading settings: ", e)
+
+        headers, body = request.split("\r\n\r\n", 1)
+
+        data = json.loads(body)
+
+        ssid = data.get("ssid")
+        password = data.get("password")
+        print(ssid)
+        print(password)
+        wlan = network.WLAN(network.STA_IF)
+        wlan.active(True)
+
+        wlan.connect(ssid, password)
+
+        # Wait for 10seconds max
+        for _ in range(20):
+            if wlan.isconnected():
+                break
+            time.sleep(0.5)
+
+        if wlan.isconnected():
+            print("Successfully connected")
+            ip = wlan.ifconfig()[0]
+
+            # Save if connected successfully
+            settings["wifi"]["SSID"] = ssid
+            settings["wifi"]["PSWD"] = password
+
+            with open("settings.json", "w") as f:
+                json.dump(settings, f)
+            print("return data")
+            return (
+                "HTTP/1.1 200 OK\r\n"
+                "Content-Type: application/json\r\n"
+                "Connection: close\r\n"
+                "\r\n"
+                + json.dumps({
+                    "success": True,
+                    "ip": ip
+                }), True
+            )
+
+        return (
+            "HTTP/1.1 400 Bad Request\r\n"
+            "Content-Type: application/json\r\n"
+            "Connection: close\r\n"
+            "\r\n"
+            + json.dumps({
+                "success": False,
+                "ip": None
+            }), False
+        )
+
+    except Exception as e:
+        print("WiFi error:", e)
+
+
+def process_email(request):
+
+    try:
+
+        host = "192.168.0.126"
+        port = 8080
+        addr = socket.getaddrinfo(
+            host,
+            port,
+            0,
+            socket.SOCK_STREAM
+        )[0][-1]
+
+        # Read settings
+        try:
+            with open("settings.json", "r") as f:
+                settings = json.load(f)
+        except Exception as e:
+            print("Problem reading settings: ", e)
+
+        headers, body = request.split("\r\n\r\n", 1)
+
+        data = json.loads(body)
+
+        email = data.get("email")
+        terrarium_name = data.get("terrarium_name")
+        terrarium_id = settings.get("device_id")
+
+        s = socket.socket()
+        s.connect(addr)
+
+        backend_body = json.dumps(
+            {
+                "email": email,
+                "terrariumName": terrarium_name,
+                "terrariumId": terrarium_id
+            }
+        )
+
+        backend_request = (
+            "POST /terrariums/link HTTP/1.1\r\n"
+            "Host: {}\r\n"
+            "Content-Type: application/json\r\n"
+            "Content-Length: {}\r\n"
+            "Connection: close\r\n"
+            "\r\n"
+            "{}"
+        ).format(
+            host,
+            len(backend_body),
+            backend_body
+        )
+
+        s.sendall(backend_request.encode())
+
+        response = s.recv(1024)
+
+        print("Backend response:", response.decode())
+
+        s.close()
+
+        return (
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Type: application/json\r\n"
+            "Connection: close\r\n"
+            "\r\n"
+            + json.dumps({
+                "success": True
+            }), True
+        )
+
+    except Exception as e:
+        # print("WiFi error:", e)
+        return (
+            "HTTP/1.1 500 Internal Server Error\r\n"
+            "Content-Type: application/json\r\n"
+            "Connection: close\r\n"
+            "\r\n"
+            + json.dumps({
+                "success": False
+            }), False
+        )
+
+
+def check_and_save_apikey():
+    try:
+        host = "192.168.0.126"
+        port = 8080
+
+        # Read settings
+        try:
+            with open("settings.json", "r") as f:
+                settings = json.load(f)
+        except Exception as e:
+            print("Problem reading settings: ", e)
+
+        # Stop this function if we have an API key in settings.json
+        if settings.get("api_key"):
+            return True
+
+        device_id = settings.get("device_id")
+
+        if not device_id:
+            print("No device_id configured")
+            return False
+
+        addr = socket.getaddrinfo(
+            host,
+            port,
+            0,
+            socket.SOCK_STREAM
+        )[0][-1]
+
+        s = socket.socket()
+        s.connect(addr)
+
+        request = (
+            "GET /terrariums/link/{} HTTP/1.1\r\n"
+            "Host: {}\r\n"
+            "Connection: close\r\n"
+            "\r\n"
+        ).format(
+            device_id,
+            host
+        )
+
+        s.sendall(request.encode())
+
+        response = b""
+
+        while True:
+            chunk = s.recv(1024)
+
+            if not chunk:
+                break
+
+            response += chunk
+
+        s.close()
+
+        response_text = response.decode()
+
+        print("Backend response:")
+        print(response_text)
+
+        headers, body = response_text.split("\r\n\r\n", 1)
+
+        # Check whether spring uses chunked encoding (weird 42 and stuff i kinda don't get it)
+        if "Transfer-Encoding: chunked" in headers:
+
+            decoded_body = ""
+
+            while body:
+                # First line should be size of chunk in hex
+                chunk_size_str, body = body.split("\r\n", 1)
+
+                chunk_size = int(chunk_size_str, 16)
+
+                # 0 = end of message
+                if chunk_size == 0:
+                    break
+
+                # ACTUALLY read the json data
+                decoded_body += body[:chunk_size]
+
+                # Remove chunk + CRLF
+                body = body[chunk_size + 2:]
+
+            body = decoded_body
+
+        print("Decoded body:", body)
+
+        data = json.loads(body)
+
+        print("Connection data:", data)
+
+        status = data.get("status")
+        api_key = data.get("APIKey")
+
+        # Only save is the status is accepted (there is no api key when not accepted)
+        if status == "ACCEPTED" and api_key:
+
+            settings["api_key"] = api_key
+
+            with open("settings.json", "w") as f:
+                json.dump(settings, f)
+
+            print("API key saved successfully!")
+            return True
+
+        print("Terrarium not accepted yet:", status)
+        return False
+
+    except Exception as e:
+        print("Connection check error:", e)
+        return False
+
+
+def send_sensor_data(bme):
+    try:
+        host = "192.168.0.126"
+        port = 8080
+
+        # Read settings
+        try:
+            with open("settings.json", "r") as f:
+                settings = json.load(f)
+        except Exception as e:
+            print("Problem reading settings: ", e)
+
+        device_id = settings.get("device_id")
+        api_key = settings.get("api_key")
+
+        if not api_key:
+            print("No API key yet")
+            return False
+
+        raw_temperature = bme.temperature
+        raw_humidity = bme.humidity
+
+        # BME280 gives '25.86C' and '43.22%' instead of just float so for the backend we need to fix that
+        temperature = float(raw_temperature.replace("C", "").strip())
+        humidity = float(raw_humidity.replace("%", "").strip())
+
+        # Create JSON body for sending the data
+        body = json.dumps({
+            "temperature": temperature,
+            "Humidity": humidity
+        })
+
+
+        addr = socket.getaddrinfo(
+            host,
+            port,
+            0,
+            socket.SOCK_STREAM
+        )[0][-1]
+
+        s = socket.socket()
+        s.connect(addr)
+
+        request = (
+            "POST /terrariums/data/{} HTTP/1.1\r\n"
+            "Host: {}\r\n"
+            "Content-Type: application/json\r\n"
+            "X-API-Key: {}\r\n"
+            "Content-Length: {}\r\n"
+            "Connection: close\r\n"
+            "\r\n"
+            "{}"
+        ).format(
+            device_id,
+            host,
+            api_key,
+            len(body),
+            body
+        )
+
+        s.sendall(request.encode())
+
+        response = b""
+
+        while True:
+            chunk = s.recv(1024)
+
+            if not chunk:
+                break
+
+            response += chunk
+
+        s.close()
+
+        # Good for testing but in comment to increase performance
+        #print("Backend response:")
+        #print(response.decode())
+
+        return True
+
+    except Exception as e:
+        print("Sensor data error:", e)
+        return False
