@@ -348,7 +348,7 @@ def process_email(request):
         )
 
         backend_request = (
-            "POST /api/terrarium/connect HTTP/1.1\r\n"
+            "POST /terrariums/link HTTP/1.1\r\n"
             "Host: {}\r\n"
             "Content-Type: application/json\r\n"
             "Content-Length: {}\r\n"
