@@ -2,7 +2,7 @@ from machine import Pin, PWM, I2C
 from servo import Servo
 from time import sleep_ms
 import BME280
-from functions import web_page, return_data
+from functions import web_page, return_data, process_wifi, reboot
 
 try:
     import usocket as socket
@@ -44,9 +44,13 @@ s.bind(('', 80))
 s.listen(5)
 s.setblocking(False)
 
+# Flag for rebooting when wifi form is successfull
+reboot_after_response = False
+
 
 while True:
     bme = BME280.BME280(i2c=i2c)
+    feeder_motor.move(0)
 
     # Look for the http requests
     try:
@@ -60,15 +64,18 @@ while True:
         if "GET /data" in request:
             response = return_data(bme)
         elif "POST /wifi" in request:
-            response = "/wifi"
+            response, reboot_after_response = process_wifi(request)
         elif "POST /email" in request:
             response = "/email"
         else:
-            #return web page if its a regular request
+            # return web page if its a regular request
             response = web_page()
 
-        conn.send(response)
+        conn.sendall(response.encode())
         conn.close()
+
+        if reboot_after_response:
+            reboot()
 
     except OSError:
         # Skip if no connections
