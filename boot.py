@@ -1,9 +1,11 @@
 import os
 import json
 import functions
+import uuid
 
 
 default_settings = {
+    "device_id": "",  # start empty
     "startup_light_color": [255, 255, 255],  # Default white as color
 }
 
@@ -26,6 +28,14 @@ try:
         settings = json.load(f)
 except Exception as e:
     print("Problem reading settings: ", e)
+
+# Generate UUID if device doesn't have one yet
+if settings.get("device_id") == "":
+    device_id = str(uuid.uuid4())
+    settings["device_id"] = device_id
+
+    with open("settings.json", "w") as f:
+        json.dump(settings, f)
 
 # Startup lighting effect
 functions.startup_lighting(settings.get("startup_light_color", None))
