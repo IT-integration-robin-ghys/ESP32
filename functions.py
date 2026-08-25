@@ -4,6 +4,7 @@ from neopixel import NeoPixel
 import time
 import network
 import json
+import socket
 
 
 np = NeoPixel(Pin(48, Pin.OUT), 1)
@@ -142,7 +143,7 @@ def web_page():
       <form id="emailForm">
         <label for="terrarium_name">Terrarium name</label><br />
         <input type="text" id="terrarium_name" name="terrarium_name" /><br />
-        
+
         <label for="email">Email address</label><br />
         <input type="email" id="email" name="email" /><br />
 
@@ -305,3 +306,87 @@ def process_wifi(request):
 
     except Exception as e:
         print("WiFi error:", e)
+
+
+def process_email(request):
+
+    try:
+
+        host = "192.168.0.126"
+        port = 8080
+        addr = socket.getaddrinfo(
+            host,
+            port,
+            0,
+            socket.SOCK_STREAM
+        )[0][-1]
+
+        # Read settings
+        try:
+            with open("settings.json", "r") as f:
+                settings = json.load(f)
+        except Exception as e:
+            print("Problem reading settings: ", e)
+
+        headers, body = request.split("\r\n\r\n", 1)
+
+        data = json.loads(body)
+
+        email = data.get("email")
+        terrarium_name = data.get("terrarium_name")
+        terrarium_id = settings.get("device_id")
+
+        s = socket.socket()
+        s.connect(addr)
+
+        backend_body = json.dumps(
+            {
+                "email": email,
+                "terrariumName": terrarium_name,
+                "terrariumId": terrarium_id
+            }
+        )
+
+        backend_request = (
+            "POST /api/terrarium/connect HTTP/1.1\r\n"
+            "Host: {}\r\n"
+            "Content-Type: application/json\r\n"
+            "Content-Length: {}\r\n"
+            "Connection: close\r\n"
+            "\r\n"
+            "{}"
+        ).format(
+            host,
+            len(backend_body),
+            backend_body
+        )
+
+        s.sendall(backend_request.encode())
+
+        response = s.recv(1024)
+
+        print("Backend response:", response.decode())
+
+        s.close()
+
+        return (
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Type: application/json\r\n"
+            "Connection: close\r\n"
+            "\r\n"
+            + json.dumps({
+                "success": True
+            }), True
+        )
+
+    except Exception as e:
+        # print("WiFi error:", e)
+        return (
+            "HTTP/1.1 500 Internal Server Error\r\n"
+            "Content-Type: application/json\r\n"
+            "Connection: close\r\n"
+            "\r\n"
+            + json.dumps({
+                "success": False
+            }), False
+        )
