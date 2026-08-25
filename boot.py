@@ -6,6 +6,7 @@ from functions import connect_wifi, start_ap
 
 default_settings = {
     "device_id": "",
+    "api-key":"",
     "startup_light_color": [255, 255, 255],  # Default white as color
     "wifi": {
         "SSID": "",
