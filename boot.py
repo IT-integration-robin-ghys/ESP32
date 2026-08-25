@@ -2,11 +2,17 @@
 import os
 import json
 import functions
-
+from functions import connect_wifi, start_ap
 
 default_settings = {
     "device_id": "",
     "startup_light_color": [255, 255, 255],  # Default white as color
+    "wifi": {
+        "SSID": "",
+        "PSWD": "",
+        "AP_SSID": "Terrarium",
+        "AP_PSWD": "terrarium1234"
+    }
 }
 
 # Read all files
@@ -30,12 +36,15 @@ except Exception as e:
     print("Problem reading settings: ", e)
 
 # Generate device ID if needed
+
+
 def generate_device_id():
     random_bytes = os.urandom(16)
 
     return "{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}".format(
         *random_bytes
     )
+
 
 if not settings.get("device_id"):
     settings["device_id"] = generate_device_id()
@@ -46,6 +55,11 @@ if not settings.get("device_id"):
     print("Generated device ID:", settings["device_id"])
 
 functions.startup(settings.get("startup_light_color", None))
+
+# Try to connect, if it fails start ap mode
+connected = connect_wifi(settings)
+if not connected:
+    start_ap(settings)
 
 if len(files) > 1:
     print('The device have %d files' % len(files))
