@@ -1,5 +1,5 @@
 
-from machine import Pin
+from machine import Pin, reset
 from neopixel import NeoPixel
 import time
 import network
@@ -227,3 +227,73 @@ def return_data(bme):
         "\r\n"
         + body
     )
+
+
+def process_wifi(request):
+    try:
+        # Read settings
+        try:
+            with open("settings.json", "r") as f:
+                settings = json.load(f)
+        except Exception as e:
+            print("Problem reading settings: ", e)
+
+        headers, body = request.split("\r\n\r\n", 1)
+
+        data = json.loads(body)
+
+        ssid = data.get("ssid")
+        password = data.get("password")
+        print(ssid)
+        print(password)
+        wlan = network.WLAN(network.STA_IF)
+        wlan.active(True)
+
+        wlan.connect(ssid, password)
+
+        # Wait for 10seconds max
+        for _ in range(20):
+            if wlan.isconnected():
+                break
+            time.sleep(0.5)
+
+        if wlan.isconnected():
+            print("Successfully connected")
+            ip = wlan.ifconfig()[0]
+
+            # Save if connected successfully
+            settings["wifi"]["SSID"] = ssid
+            settings["wifi"]["PSWD"] = password
+
+            with open("settings.json", "w") as f:
+                json.dump(settings, f)
+            print("return data")
+            return (
+                "HTTP/1.1 200 OK\r\n"
+                "Content-Type: application/json\r\n"
+                "Connection: close\r\n"
+                "\r\n"
+                + json.dumps({
+                    "success": True,
+                    "ip": ip
+                }), True
+            )
+
+        return (
+            "HTTP/1.1 400 Bad Request\r\n"
+            "Content-Type: application/json\r\n"
+            "Connection: close\r\n"
+            "\r\n"
+            + json.dumps({
+                "success": False,
+                "ip": None
+            }), False
+        )
+
+    except Exception as e:
+        print("WiFi error:", e)
+
+
+def reboot():
+    time.sleep(10)
+    reset()
