@@ -3,6 +3,7 @@ from machine import Pin
 from neopixel import NeoPixel
 import time
 import network
+import json
 
 
 np = NeoPixel(Pin(48, Pin.OUT), 1)
@@ -96,3 +97,105 @@ def connect_wifi(settings):
     print("Connecting to wifi failed")
     wlan.disconnect()
     return False
+
+
+def web_page():
+    html = """
+    <!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Terrarium</title>
+  </head>
+
+  <body>
+    <div id="data">
+      <h1>Live data</h1>
+      <p>Temperature: <span id="temperature">-</span></p>
+      <p>Humidity: <span id="humidity">-</span></p>
+      <p>Pressure: <span id="pressure">-</span></p>
+    </div>
+
+    <div id="connect_wifi">
+      <h1>Connect to WiFi</h1>
+
+      <form id="wifiForm">
+        <label for="ssid">WiFi SSID</label><br />
+        <input type="text" id="ssid" name="ssid" /><br />
+
+        <label for="password">Password</label><br />
+        <input type="password" id="password" name="password" /><br />
+
+        <button type="submit">Connect</button>
+      </form>
+    </div>
+
+    <div id="connect_email">
+      <h1>Connect device to account</h1>
+
+      <form id="emailForm">
+        <label for="email">Email address</label><br />
+        <input type="email" id="email" name="email" /><br />
+
+        <button type="submit">Connect device</button><br />
+      </form>
+    </div>
+
+    <script>
+      const updateData = async () => {
+        const response = await fetch("/data");
+        const data = await response.json();
+
+        document.getElementById("temperature").textContent = data.temperature;
+        document.getElementById("humidity").textContent = data.humidity;
+        document.getElementById("pressure").textContent = data.pressure;
+      };
+
+      const wifiForm = document.getElementById("wifiForm");
+
+      wifiForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const ssid = document.getElementById("ssid").value;
+        const password = document.getElementById("password").value;
+
+        await fetch("/wifi", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ssid: ssid,
+            password: password,
+          }),
+        });
+      });
+
+      const emailForm = document.getElementById("emailForm");
+
+      emailForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const email = document.getElementById("email").value;
+
+        await fetch("/email", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: email,
+          }),
+        });
+      });
+
+      updateData();
+      setInterval(updateData, 10000);
+    </script>
+  </body>
+</html>
+
+    """
+    return html
+
