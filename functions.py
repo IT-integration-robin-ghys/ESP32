@@ -625,6 +625,84 @@ def get_settings():
         )
 
 
+def process_settings(request):
+    try:
+        headers, body = request.split("\r\n\r\n", 1)
+
+        new_settings = json.loads(body)
+
+        # Read settings
+        try:
+            with open("settings.json", "r") as f:
+                settings = json.load(f)
+        except Exception as e:
+            print("Problem reading settings: ", e)
+
+        settings["day"] = {
+            "start_time": new_settings.get("day", {}).get("start_time"),
+            "temp": new_settings.get("day", {}).get("temp"),
+            "temp_margin": new_settings.get("day", {}).get("temp_margin"),
+            "temp_too_high_margin": new_settings.get("day", {}).get(
+                "temp_too_high_margin"
+            ),
+            "humidity": new_settings.get("day", {}).get("humidity"),
+            "humidity_margin": new_settings.get("day", {}).get("humidity_margin")
+        }
+
+        settings["night"] = {
+            "start_time": new_settings.get("night", {}).get("start_time"),
+            "temp": new_settings.get("night", {}).get("temp"),
+            "temp_margin": new_settings.get("night", {}).get("temp_margin"),
+            "temp_too_high_margin": new_settings.get("night", {}).get(
+                "temp_too_high_margin"
+            ),
+            "humidity": new_settings.get("night", {}).get("humidity"),
+            "humidity_margin": new_settings.get("night", {}).get("humidity_margin")
+        }
+
+        settings["feeder"] = {
+            "days": new_settings.get("feeder", {}).get("days"),
+            "time_first_portion": new_settings.get("feeder", {}).get(
+                "time_first_portion"
+            ),
+            "time_second_portion": new_settings.get("feeder", {}).get(
+                "time_second_portion"
+            )
+        }
+
+        # Save settings
+        with open("settings.json", "w") as f:
+            json.dump(settings, f)
+            print("Settings saved")
+
+        return (
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Type: application/json\r\n"
+            "Connection: close\r\n"
+            "\r\n"
+            + json.dumps({
+                "success": True,
+                "message": "Settings saved"
+            }),
+            True
+        )
+
+    except Exception as e:
+        print("Settings error:", e)
+
+        return (
+            "HTTP/1.1 400 Bad Request\r\n"
+            "Content-Type: application/json\r\n"
+            "Connection: close\r\n"
+            "\r\n"
+            + json.dumps({
+                "success": False,
+                "message": str(e)
+            }),
+            False
+        )
+
+
 def get_day_night(settings):
     current_hour = time.localtime()[3]
 
