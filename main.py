@@ -84,6 +84,15 @@ while True:
         mist_pin
     )
 
+    timer_60s += 1
+    if timer_60s >= 120:
+        timer_60s = 0
+
+        if api_key:
+            send_sensor_data(bme)
+
+    sleep_ms(500)
+
     # Look for the http requests
     try:
         conn, addr = s.accept()
@@ -125,14 +134,6 @@ while True:
         if terrarium_request_successfully_sent:
             check_and_save_apikey()
 
-        timer_60s += 1
-        if timer_60s >= 120:
-            timer_60s = 0
-
-            if api_key:
-                send_sensor_data(bme)
-
-        sleep_ms(500)
     except OSError:
         # Skip if no connections
         pass
