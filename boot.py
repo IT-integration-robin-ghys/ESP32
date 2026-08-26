@@ -13,7 +13,29 @@ default_settings = {
         "PSWD": "",
         "AP_SSID": "Terrarium",
         "AP_PSWD": "terrarium1234"
+    },
+    "day": {
+        "start_time": 8,
+        "temp": 21.0,
+        "temp_margin": 1.0,
+        "temp_too_high_margin": 10.0,
+        "humidity": 60.0,
+        "humidity_margin": 5.0,
+    },
+    "night": {
+        "start_time": 21,
+        "temp": 18.0,
+        "temp_margin": 1.0,
+        "temp_too_high_margin": 10.0,
+        "humidity": 60.0,
+        "humidity_margin": 5.0
+    },
+    "feeder": {
+        "days": [0, 3],
+        "time_first_portion": 10,
+        "time_second_portion": 18
     }
+
 }
 
 # Read all files

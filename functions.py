@@ -5,6 +5,8 @@ import time
 import network
 import json
 import socket
+import ntptime
+from webpage import html
 
 
 np = NeoPixel(Pin(48, Pin.OUT), 1)
@@ -106,119 +108,6 @@ def connect_wifi(settings):
 
 
 def web_page():
-    html = """
-    <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Terrarium</title>
-  </head>
-
-  <body>
-    <div id="data">
-      <h1>Live data</h1>
-      <p>Temperature: <span id="temperature">-</span></p>
-      <p>Humidity: <span id="humidity">-</span></p>
-      <p>Pressure: <span id="pressure">-</span></p>
-    </div>
-
-    <div id="connect_wifi">
-      <h1>Connect to WiFi</h1>
-
-      <form id="wifiForm">
-        <label for="ssid">WiFi SSID</label><br />
-        <input type="text" id="ssid" name="ssid" /><br />
-
-        <label for="password">Password</label><br />
-        <input type="password" id="password" name="password" /><br />
-
-        <button type="submit">Connect</button>
-      </form>
-    </div>
-
-    <div id="connect_email">
-      <h1>Connect device to account</h1>
-
-      <form id="emailForm">
-        <label for="terrarium_name">Terrarium name</label><br />
-        <input type="text" id="terrarium_name" name="terrarium_name" /><br />
-
-        <label for="email">Email address</label><br />
-        <input type="email" id="email" name="email" /><br />
-
-        <button type="submit">Connect device</button><br />
-      </form>
-    </div>
-
-    <script>
-      const updateData = async () => {
-        const response = await fetch("/data");
-        const data = await response.json();
-
-        document.getElementById("temperature").textContent = data.temperature;
-        document.getElementById("humidity").textContent = data.humidity;
-        document.getElementById("pressure").textContent = data.pressure;
-      };
-
-      const wifiForm = document.getElementById("wifiForm");
-
-      wifiForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-
-        const ssid = document.getElementById("ssid").value;
-        const password = document.getElementById("password").value;
-
-        const response = await fetch("/wifi", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            ssid: ssid,
-            password: password,
-          }),
-        });
-        const data = await response.json();
-
-        data.success
-          ? alert(
-              `Connection successfull, you can connect through the new ip: ${data.ip}`,
-            )
-          : alert(`Connecting to wifi failed`);
-      });
-
-      const emailForm = document.getElementById("emailForm");
-
-      emailForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-
-        const email = document.getElementById("email").value;
-        const terrarium_name = document.getElementById("terrarium_name").value;
-
-        const response = await fetch("/email", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email: email,
-            terrarium_name: terrarium_name,
-          }),
-        });
-
-        const data = await response.json();
-
-        alert(data.message);
-      });
-
-      updateData();
-      setInterval(updateData, 10000);
-    </script>
-  </body>
-</html>
-
-    """
     return html
 
 
@@ -538,7 +427,6 @@ def send_sensor_data(bme):
             "Humidity": humidity
         })
 
-
         addr = socket.getaddrinfo(
             host,
             port,
@@ -581,11 +469,236 @@ def send_sensor_data(bme):
         s.close()
 
         # Good for testing but in comment to increase performance
-        #print("Backend response:")
-        #print(response.decode())
+        # print("Backend response:")
+        # print(response.decode())
 
         return True
 
     except Exception as e:
         print("Sensor data error:", e)
         return False
+
+
+def get_settings():
+    try:
+        # Read settings
+        try:
+            with open("settings.json", "r") as f:
+                settings = json.load(f)
+        except Exception as e:
+            print("Problem reading settings: ", e)
+
+        data = {
+            "day": settings.get("day", {}),
+            "night": settings.get("night", {}),
+            "feeder": settings.get("feeder", {})
+        }
+
+        return (
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Type: application/json\r\n"
+            "Connection: close\r\n"
+            "\r\n"
+            + json.dumps(data)
+        )
+
+    except Exception as e:
+        return (
+            "HTTP/1.1 500 Internal Server Error\r\n"
+            "Content-Type: application/json\r\n"
+            "Connection: close\r\n"
+            "\r\n"
+            + json.dumps({
+                "success": False
+            })
+        )
+
+
+def process_settings(request):
+    try:
+        print("Changing settings")
+        headers, body = request.split("\r\n\r\n", 1)
+
+        new_settings = json.loads(body)
+
+        # Read settings
+        try:
+            with open("settings.json", "r") as f:
+                settings = json.load(f)
+        except Exception as e:
+            print("Problem reading settings: ", e)
+
+        settings["day"] = {
+            "start_time": new_settings.get("day", {}).get("start_time"),
+            "temp": new_settings.get("day", {}).get("temp"),
+            "temp_margin": new_settings.get("day", {}).get("temp_margin"),
+            "temp_too_high_margin": new_settings.get("day", {}).get(
+                "temp_too_high_margin"
+            ),
+            "humidity": new_settings.get("day", {}).get("humidity"),
+            "humidity_margin": new_settings.get("day", {}).get("humidity_margin")
+        }
+
+        settings["night"] = {
+            "start_time": new_settings.get("night", {}).get("start_time"),
+            "temp": new_settings.get("night", {}).get("temp"),
+            "temp_margin": new_settings.get("night", {}).get("temp_margin"),
+            "temp_too_high_margin": new_settings.get("night", {}).get(
+                "temp_too_high_margin"
+            ),
+            "humidity": new_settings.get("night", {}).get("humidity"),
+            "humidity_margin": new_settings.get("night", {}).get("humidity_margin")
+        }
+
+        settings["feeder"] = {
+            "days": new_settings.get("feeder", {}).get("days"),
+            "time_first_portion": new_settings.get("feeder", {}).get(
+                "time_first_portion"
+            ),
+            "time_second_portion": new_settings.get("feeder", {}).get(
+                "time_second_portion"
+            )
+        }
+
+        # Save settings
+        with open("settings.json", "w") as f:
+            json.dump(settings, f)
+            print("Settings saved")
+
+        return (
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Type: application/json\r\n"
+            "Connection: close\r\n"
+            "\r\n"
+            + json.dumps({
+                "success": True,
+                "message": "Settings saved"
+            }),
+            True
+        )
+
+    except Exception as e:
+        print("Settings error:", e)
+
+        return (
+            "HTTP/1.1 400 Bad Request\r\n"
+            "Content-Type: application/json\r\n"
+            "Connection: close\r\n"
+            "\r\n"
+            + json.dumps({
+                "success": False,
+                "message": str(e)
+            }),
+            False
+        )
+
+
+def get_day_night(settings):
+    current_hour = time.localtime()[3]
+
+    # Belgium is UTC + 2
+    current_hour += 2
+    print(current_hour)
+
+    day_start = settings.get("day", {}).get("start_time")
+    night_start = settings.get("night", {}).get("start_time")
+
+    if day_start <= current_hour < night_start:
+        print("day")
+        return "day"
+    print("night")
+
+    return "night"
+
+
+def control_heater(temperature, settings, heater):
+    target = settings.get(get_day_night(settings), {}).get("temp")
+    margin = settings.get(get_day_night(settings), {}).get("temp_margin")
+
+    if temperature <= target - margin:
+        heater.duty_u16(65535)
+        print("Heaterpad ON")
+
+    elif temperature >= target:
+        heater.duty_u16(0)
+        print("Heaterpad OFF")
+
+
+def control_cooling(temperature, settings, fan1, fan2):
+    target = settings.get(get_day_night(settings), {}).get("temp")
+    too_high_margin = settings.get(
+        get_day_night(settings), {}).get("temp_too_high_margin")
+
+    if temperature >= target + too_high_margin:
+        fan1.duty_u16(65535)
+        fan2.duty_u16(65535)
+
+        print("Coolingfans ON")
+
+    else:
+        fan1.duty_u16(0)
+        fan2.duty_u16(0)
+
+        print("Coolingfans OFF")
+
+
+def control_humidity(humidity, settings, mister):
+    target = settings.get(get_day_night(settings), {}).get("humidity")
+    margin = settings.get(get_day_night(settings), {}).get("humidity_margin")
+
+    if humidity <= target - margin:
+        mister.duty_u16(65535)
+        print("Mister ON")
+
+    elif humidity >= target:
+        mister.duty_u16(0)
+        print("Mister OFF")
+
+
+def control_feeder(settings, feeder_motor):
+    current_time = time.localtime()
+
+    current_day = current_time[6]
+    current_hour = current_time[3]
+
+    feeder_days = settings.get("feeder", {}).get("days", [])
+    time_first_portion = settings.get("feeder", {}).get("time_first_portion")
+    time_second_portion = settings.get("feeder", {}).get("time_second_portion")
+
+    # Only open feeder on days that are defined in the settings
+    if current_day not in feeder_days:
+        return
+
+    # Give first portion (open to 90°)
+    if current_hour == time_first_portion:
+        feeder_motor.move(90)
+
+    # Give second portion (open to 180°)
+    elif current_hour == time_second_portion:
+        feeder_motor.move(180)
+
+
+def control_lighting(settings, pin_led, pin_relai_lamp):
+    if (get_day_night(settings) == "day"):
+        pin_led.duty_u16(65535)
+        pin_relai_lamp.value(1)
+    else:
+        pin_led.duty_u16(0)
+        pin_relai_lamp.value(0)
+
+
+def sync_time():
+    tries = 0
+    while tries < 20:
+        try:
+            print("Synchronizing time...")
+            ntptime.settime()
+            print("Time synchronized:", time.localtime())
+            return True
+
+        except Exception as e:
+            tries += 1
+            print("Time sync error:", e)
+            print("Attempt", tries, "of 20")
+            time.sleep_ms(500)
+    return False
