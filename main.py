@@ -4,7 +4,7 @@ from machine import Pin, PWM, I2C
 from servo import Servo
 from time import sleep_ms
 import BME280
-from functions import web_page, return_data, process_wifi, process_email, reboot, check_and_save_apikey, send_sensor_data
+from functions import web_page, return_data, process_wifi, process_email, reboot, check_and_save_apikey, send_sensor_data, get_day_night, control_heater, control_cooling, control_humidity
 
 try:
     import usocket as socket
@@ -25,10 +25,6 @@ def create_pwm(pin_number, frequency=1000, duty=32768):
     pwm.freq(frequency)
     pwm.duty_u16(duty)
     return pwm
-
-
-def set_duty(pwm, duty):
-    pwm.duty_u16(duty)
 
 
 feeder_motor = Servo(pin=9)
@@ -117,12 +113,3 @@ while True:
     except OSError:
         # Skip if no connections
         pass
-
-    # don't need these for now
-
-    # set_duty(pwm10, 65535)
-    # set_duty(pwm11, 65535)
-    # set_duty(pwm12, 65535)
-    # set_duty(pwm13, 65535)
-    # set_duty(pwm14, 65535)
-    # sleep_ms(1000)
