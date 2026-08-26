@@ -2,7 +2,7 @@
 import os
 import json
 import functions
-from functions import connect_wifi, start_ap
+from functions import connect_wifi, start_ap, send_settings, get_settings_from_backend
 
 default_settings = {
     "device_id": "",
@@ -83,6 +83,12 @@ functions.startup(settings.get("startup_light_color", None))
 connected = connect_wifi(settings)
 if not connected:
     start_ap(settings)
+api_key = settings.get("api_key")
+
+if api_key:
+    if connected:
+        send_settings()
+        get_settings_from_backend()
 
 if len(files) > 1:
     print('The device have %d files' % len(files))
