@@ -83,9 +83,11 @@ functions.startup(settings.get("startup_light_color", None))
 connected = connect_wifi(settings)
 if not connected:
     start_ap(settings)
+api_key = settings.get("api_key")
 
-if connected:
-    send_settings()
+if api_key:
+    if connected:
+        send_settings()
 
 if len(files) > 1:
     print('The device have %d files' % len(files))
