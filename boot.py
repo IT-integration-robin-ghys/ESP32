@@ -2,7 +2,7 @@
 import os
 import json
 import functions
-from functions import connect_wifi, start_ap, send_settings, get_settings_from_backend
+from functions import connect_wifi, start_ap, send_settings, get_settings_from_backend, sync_time, reboot
 
 default_settings = {
     "device_id": "",
@@ -83,6 +83,11 @@ functions.startup(settings.get("startup_light_color", None))
 connected = connect_wifi(settings)
 if not connected:
     start_ap(settings)
+else:
+    if not sync_time():
+        reboot()
+
+
 api_key = settings.get("api_key")
 
 if api_key:
