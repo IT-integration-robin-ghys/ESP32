@@ -479,6 +479,98 @@ def send_sensor_data(bme):
         return False
 
 
+def send_settings():
+    try:
+        host = "192.168.0.126"
+        port = 8080
+
+        # Read settings
+        try:
+            with open("settings.json", "r") as f:
+                settings = json.load(f)
+        except Exception as e:
+            print("Problem reading settings: ", e)
+
+        api_key = settings.get("api_key")
+
+        device_id = settings.get("device_id")
+        feeder = settings.get("feeder")
+        day = settings.get("day")
+        night = settings.get("night")
+        startup_light_color = settings.get("startup_light_color")
+
+        ap_ssid = settings.get("wifi", {}).get("AP_SSID")
+        ap_pswd = settings.get("wifi", {}).get("AP_PSWD")
+
+        if not api_key:
+            print("No API key yet")
+            return False
+
+        # Create JSON body for sending the data
+        body = json.dumps({
+            "feeder": feeder,
+            "day": day,
+            "night": night,
+            "startup_light_color": startup_light_color,
+            "wifi": {
+                "AP_SSID": ap_ssid,
+                "AP_PSWD": ap_pswd
+            }
+
+        })
+
+        addr = socket.getaddrinfo(
+            host,
+            port,
+            0,
+            socket.SOCK_STREAM
+        )[0][-1]
+
+        s = socket.socket()
+        s.connect(addr)
+
+        request = (
+            "POST /terrariums/settings/esp32/{} HTTP/1.1\r\n"
+            "Host: {}\r\n"
+            "Content-Type: application/json\r\n"
+            "X-API-Key: {}\r\n"
+            "Content-Length: {}\r\n"
+            "Connection: close\r\n"
+            "\r\n"
+            "{}"
+        ).format(
+            device_id,
+            host,
+            api_key,
+            len(body),
+            body
+        )
+
+        s.sendall(request.encode())
+
+        response = b""
+
+        while True:
+            chunk = s.recv(1024)
+
+            if not chunk:
+                break
+
+            response += chunk
+
+        s.close()
+
+        # Good for testing but in comment to increase performance
+        print("Backend response:")
+        print(response.decode())
+
+        return True
+
+    except Exception as e:
+        print("Sensor data error:", e)
+        return False
+
+
 def get_settings():
     try:
         # Read settings
