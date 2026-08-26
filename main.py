@@ -4,7 +4,7 @@ from machine import Pin, PWM, I2C
 from servo import Servo
 from time import sleep_ms
 import BME280
-from functions import web_page, return_data, process_wifi, process_email, reboot, check_and_save_apikey, send_sensor_data, get_day_night, control_heater, control_cooling, control_humidity
+from functions import web_page, return_data, process_wifi, process_email, reboot, check_and_save_apikey, send_sensor_data, control_heater, control_cooling, control_humidity, get_settings
 
 try:
     import usocket as socket
@@ -104,6 +104,8 @@ while True:
 
         if "GET /data" in request:
             response = return_data(bme)
+        elif "GET /settings" in request:
+            response = get_settings()
         elif "POST /wifi" in request:
             response, reboot_after_response = process_wifi(request)
         elif "POST /email" in request:
