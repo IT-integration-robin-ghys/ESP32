@@ -61,6 +61,29 @@ timer_60s = 0
 
 while True:
     feeder_motor.move(0)
+
+    temperature = float(bme.temperature.replace("C", ""))
+    humidity = float(bme.humidity.replace("%", ""))
+
+    control_heater(
+        temperature,
+        settings,
+        M3_heating
+    )
+
+    control_cooling(
+        temperature,
+        settings,
+        M4_fan1,
+        M5_fan2
+    )
+
+    control_humidity(
+        humidity,
+        settings,
+        mist_pin
+    )
+
     # Look for the http requests
     try:
         conn, addr = s.accept()
