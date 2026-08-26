@@ -81,19 +81,17 @@ functions.startup(settings.get("startup_light_color", None))
 
 # Try to connect, if it fails start ap mode
 connected = connect_wifi(settings)
+api_key = settings.get("api_key")
+
 if not connected:
     start_ap(settings)
 else:
     if not sync_time():
         reboot()
-
-
-api_key = settings.get("api_key")
-
-if api_key:
-    if connected:
+    if api_key:
         send_settings()
         get_settings_from_backend()
+
 
 if len(files) > 1:
     print('The device have %d files' % len(files))
