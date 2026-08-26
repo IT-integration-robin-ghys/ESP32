@@ -36,7 +36,8 @@ def create_pwm(pin_number, frequency=1000, duty=32768):
     return pwm
 
 
-sync_time()
+if not sync_time():
+    reboot()
 
 feeder_motor = Servo(pin=9)
 mist_pin = create_pwm(10, frequency=1000, duty=0)
@@ -101,7 +102,7 @@ while True:
         settings,
         M2_led,
         relai_lamp
-        
+
     )
 
     timer_60s += 1

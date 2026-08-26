@@ -688,14 +688,17 @@ def control_lighting(settings, pin_led, pin_relai_lamp):
 
 
 def sync_time():
-    try:
-        print("Synchronizing time...")
-        ntptime.settime()
+    tries = 0
+    while tries < 20:
+        try:
+            print("Synchronizing time...")
+            ntptime.settime()
+            print("Time synchronized:", time.localtime())
+            return True
 
-        current_time = time.time()
-        time.localtime(current_time)
-
-        print("Time synchronized:", time.localtime())
-
-    except Exception as e:
-        print("Time sync error:", e)
+        except Exception as e:
+            tries += 1
+            print("Time sync error:", e)
+            print("Attempt", tries, "of 20")
+            time.sleep_ms(500)
+    return False
