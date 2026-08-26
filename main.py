@@ -19,6 +19,15 @@ except Exception as e:
 
 api_key = settings.get("api_key")
 
+# Webserver
+try:
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind(('', 80))
+    s.listen(5)
+    s.setblocking(False)
+except:
+    reboot()
+
 
 def create_pwm(pin_number, frequency=1000, duty=32768):
     pwm = PWM(Pin(pin_number, Pin.OUT))
@@ -44,11 +53,6 @@ i2c = I2C(
 # Move servo to start position
 feeder_motor.move(0)
 
-# Webserver
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.bind(('', 80))
-s.listen(5)
-s.setblocking(False)
 
 # Flag for rebooting when wifi form is successfull
 reboot_after_response = False
