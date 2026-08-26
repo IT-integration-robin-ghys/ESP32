@@ -69,8 +69,6 @@ timer_60s = 0
 
 
 while True:
-    feeder_motor.move(0)
-
     temperature = float(bme.temperature.replace("C", ""))
     humidity = float(bme.humidity.replace("%", ""))
 
