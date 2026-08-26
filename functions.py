@@ -571,6 +571,108 @@ def send_settings():
         return False
 
 
+def get_settings_from_backend():
+    try:
+        host = "192.168.0.126"
+        port = 8080
+
+        # Read settings
+        try:
+            with open("settings.json", "r") as f:
+                settings = json.load(f)
+        except Exception as e:
+            print("Problem reading settings: ", e)
+
+        api_key = settings.get("api_key")
+        device_id = settings.get("device_id")
+
+        request = (
+            "GET /terrariums/settings/esp32/{} HTTP/1.1\r\n"
+            "Host: {}\r\n"
+            "X-API-Key: {}\r\n"
+            "Connection: close\r\n"
+            "\r\n"
+        ).format(
+            device_id,
+            host,
+            api_key,
+        )
+
+        s = socket.socket()
+        s.connect((host, port))
+        s.send(request.encode())
+        
+        response = b""
+
+        while True:
+            data = s.recv(1024)
+            
+            if not data:
+                break
+            response += data
+
+        s.close()
+        response = response.decode()
+
+        # print("Backend response:")
+        # print(response)
+
+        headers, response_body = response.split("\r\n\r\n", 1)
+
+        new_settings = json.loads(response_body)
+
+        # Map data for saving in settings.json
+
+        settings["day"] = {
+            "start_time": new_settings.get("day", {}).get("start_time"),
+            "temp": new_settings.get("day", {}).get("temp"),
+            "temp_margin": new_settings.get("day", {}).get("temp_margin"),
+            "temp_too_high_margin": new_settings.get(
+                "day", {}
+            ).get("temp_too_high_margin"),
+            "humidity": new_settings.get("day", {}).get("humidity"),
+            "humidity_margin": new_settings.get(
+                "day", {}
+            ).get("humidity_margin")
+        }
+
+        settings["night"] = {
+            "start_time": new_settings.get("night", {}).get("start_time"),
+            "temp": new_settings.get("night", {}).get("temp"),
+            "temp_margin": new_settings.get("night", {}).get("temp_margin"),
+            "temp_too_high_margin": new_settings.get(
+                "night", {}
+            ).get("temp_too_high_margin"),
+            "humidity": new_settings.get("night", {}).get("humidity"),
+            "humidity_margin": new_settings.get(
+                "night", {}
+            ).get("humidity_margin")
+        }
+
+        settings["feeder"] = {
+            "days": new_settings.get("feeder", {}).get("days"),
+            "time_first_portion": new_settings.get(
+                "feeder", {}
+            ).get("time_first_portion"),
+            "time_second_portion": new_settings.get(
+                "feeder", {}
+            ).get("time_second_portion")
+        }
+
+        settings["wifi"] = {
+            "SSID": settings.get("wifi", {}).get("SSID"),
+            "PSWD": settings.get("wifi", {}).get("PSWD"),
+            "AP_SSID": settings.get("wifi", {}).get("AP_SSID"),
+            "AP_PSWD": settings.get("wifi", {}).get("AP_PSWD")
+        }
+        # Save settings
+        with open("settings.json", "w") as f:
+            json.dump(settings, f)
+            print("Settings saved")
+    except Exception as e:
+        print("Error getting settings:", e)
+
+
 def get_settings():
     try:
         # Read settings
