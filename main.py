@@ -111,7 +111,7 @@ while True:
         elif "GET /settings" in request:
             response = get_settings()
         elif "POST /settings" in request:
-            response = process_settings(request)
+            response, reboot_after_response = process_settings(request)
         elif "POST /wifi" in request:
             response, reboot_after_response = process_wifi(request)
         elif "POST /email" in request:
