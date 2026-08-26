@@ -5,6 +5,7 @@ import time
 import network
 import json
 import socket
+import ntptime
 
 
 np = NeoPixel(Pin(48, Pin.OUT), 1)
@@ -962,11 +963,17 @@ def process_settings(request):
 def get_day_night(settings):
     current_hour = time.localtime()[3]
 
+    # Belgium is UTC + 2
+    current_hour += 2
+    print(current_hour)
+
     day_start = settings.get("day", {}).get("start_time")
     night_start = settings.get("night", {}).get("start_time")
 
     if day_start <= current_hour < night_start:
+        print("day")
         return "day"
+    print("night")
 
     return "night"
 
@@ -1036,3 +1043,26 @@ def control_feeder(settings, feeder_motor):
     # Give second portion (open to 180°)
     elif current_hour == time_second_portion:
         feeder_motor.move(180)
+
+
+def control_lighting(settings, pin_led, pin_relai_lamp):
+    if (get_day_night(settings) == "day"):
+        pin_led.duty_u16(65535)
+        pin_relai_lamp.value(1)
+    else:
+        pin_led.duty_u16(0)
+        pin_relai_lamp.value(0)
+
+
+def sync_time():
+    try:
+        print("Synchronizing time...")
+        ntptime.settime()
+
+        current_time = time.time()
+        time.localtime(current_time)
+
+        print("Time synchronized:", time.localtime())
+
+    except Exception as e:
+        print("Time sync error:", e)

@@ -4,7 +4,7 @@ from machine import Pin, PWM, I2C
 from servo import Servo
 from time import sleep_ms
 import BME280
-from functions import web_page, return_data, process_wifi, process_email, reboot, check_and_save_apikey, send_sensor_data, control_heater, control_cooling, control_humidity, control_feeder, get_settings, process_settings
+from functions import web_page, return_data, process_wifi, process_email, reboot, check_and_save_apikey, send_sensor_data, control_heater, control_cooling, control_humidity, control_feeder, get_settings, process_settings, control_lighting, sync_time
 
 try:
     import usocket as socket
@@ -36,12 +36,16 @@ def create_pwm(pin_number, frequency=1000, duty=32768):
     return pwm
 
 
+sync_time()
+
 feeder_motor = Servo(pin=9)
 mist_pin = create_pwm(10, frequency=1000, duty=0)
 M5_fan2 = create_pwm(11, frequency=1000, duty=0)
 M4_fan1 = create_pwm(12, frequency=1000, duty=0)
 M3_heating = create_pwm(13, frequency=1000, duty=0)
 M2_led = create_pwm(14, frequency=1000, duty=0)
+
+relai_lamp = Pin(21, Pin.OUT, value=0)
 
 i2c = I2C(
     0,
@@ -91,6 +95,13 @@ while True:
     control_feeder(
         settings,
         feeder_motor
+    )
+
+    control_lighting(
+        settings,
+        M2_led,
+        relai_lamp
+        
     )
 
     timer_60s += 1
