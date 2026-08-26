@@ -29,6 +29,11 @@ default_settings = {
         "temp_too_high_margin": 10.0,
         "humidity": 60.0,
         "humidity_margin": 5.0
+    },
+    "feeder": {
+        "days": [0, 3],
+        "time_first_portion": 10,
+        "time_second_portion": 18
     }
 
 }
