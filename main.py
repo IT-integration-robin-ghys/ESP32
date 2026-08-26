@@ -4,7 +4,7 @@ from machine import Pin, PWM, I2C
 from servo import Servo
 from time import sleep_ms
 import BME280
-from functions import web_page, return_data, process_wifi, process_email, reboot, check_and_save_apikey, send_sensor_data, control_heater, control_cooling, control_humidity, control_feeder, get_settings, process_settings, control_lighting, sync_time, get_settings_from_backend
+from functions import web_page, return_data, process_wifi, process_email, reboot, check_and_save_apikey, send_sensor_data, control_heater, control_cooling, control_humidity, control_feeder, get_settings, process_settings, control_lighting, get_settings_from_backend
 
 try:
     import usocket as socket
