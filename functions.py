@@ -644,3 +644,26 @@ def control_humidity(humidity, settings, mister):
     elif humidity >= target:
         mister.duty_u16(0)
         print("Mister OFF")
+
+
+def control_feeder(settings, feeder_motor):
+    current_time = time.localtime()
+
+    current_day = current_time[6]
+    current_hour = current_time[3]
+
+    feeder_days = settings.get("feeder", {}).get("days", [])
+    time_first_portion = settings.get("feeder", {}).get("time_first_portion")
+    time_second_portion = settings.get("feeder", {}).get("time_second_portion")
+
+    # Only open feeder on days that are defined in the settings
+    if current_day not in feeder_days:
+        return
+
+    # Give first portion (open to 90°)
+    if current_hour == time_first_portion:
+        feeder_motor.move(90)
+
+    # Give second portion (open to 180°)
+    elif current_hour == time_second_portion:
+        feeder_motor.move(180)
