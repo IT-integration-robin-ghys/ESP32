@@ -590,6 +590,41 @@ def send_sensor_data(bme):
         return False
 
 
+def get_settings():
+    try:
+        # Read settings
+        try:
+            with open("settings.json", "r") as f:
+                settings = json.load(f)
+        except Exception as e:
+            print("Problem reading settings: ", e)
+
+        data = {
+            "day": settings.get("day", {}),
+            "night": settings.get("night", {}),
+            "feeder": settings.get("feeder", {})
+        }
+
+        return (
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Type: application/json\r\n"
+            "Connection: close\r\n"
+            "\r\n"
+            + json.dumps(data)
+        )
+
+    except Exception as e:
+        return (
+            "HTTP/1.1 500 Internal Server Error\r\n"
+            "Content-Type: application/json\r\n"
+            "Connection: close\r\n"
+            "\r\n"
+            + json.dumps({
+                "success": False
+            })
+        )
+
+
 def get_day_night(settings):
     current_hour = time.localtime()[3]
 
