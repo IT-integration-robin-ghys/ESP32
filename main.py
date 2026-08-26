@@ -36,9 +36,6 @@ def create_pwm(pin_number, frequency=1000, duty=32768):
     return pwm
 
 
-if not sync_time():
-    reboot()
-
 feeder_motor = Servo(pin=9)
 mist_pin = create_pwm(10, frequency=1000, duty=0)
 M5_fan2 = create_pwm(11, frequency=1000, duty=0)
