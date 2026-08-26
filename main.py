@@ -4,7 +4,7 @@ from machine import Pin, PWM, I2C
 from servo import Servo
 from time import sleep_ms
 import BME280
-from functions import web_page, return_data, process_wifi, process_email, reboot, check_and_save_apikey, send_sensor_data, control_heater, control_cooling, control_humidity, get_settings, process_settings
+from functions import web_page, return_data, process_wifi, process_email, reboot, check_and_save_apikey, send_sensor_data, control_heater, control_cooling, control_humidity, control_feeder, get_settings, process_settings
 
 try:
     import usocket as socket
@@ -86,6 +86,11 @@ while True:
         humidity,
         settings,
         mist_pin
+    )
+
+    control_feeder(
+        settings,
+        feeder_motor
     )
 
     timer_60s += 1
