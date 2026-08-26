@@ -600,3 +600,47 @@ def get_day_night(settings):
         return "day"
 
     return "night"
+
+
+def control_heater(temperature, settings, heater):
+    target = settings.get(get_day_night(settings), {}).get("temp")
+    margin = settings.get(get_day_night(settings), {}).get("temp_margin")
+
+    if temperature <= target - margin:
+        heater.duty_u16(65535)
+        print("Heaterpad ON")
+
+    elif temperature >= target:
+        heater.duty_u16(0)
+        print("Heaterpad OFF")
+
+
+def control_cooling(temperature, settings, fan1, fan2):
+    target = settings.get(get_day_night(settings), {}).get("temp")
+    too_high_margin = settings.get(
+        get_day_night(settings), {}).get("temp_too_high_margin")
+
+    if temperature >= target + too_high_margin:
+        fan1.duty_u16(65535)
+        fan2.duty_u16(65535)
+
+        print("Coolingfans ON")
+
+    else:
+        fan1.duty_u16(0)
+        fan2.duty_u16(0)
+
+        print("Coolingfans OFF")
+
+
+def control_humidity(humidity, settings, mister):
+    target = settings.get(get_day_night(settings), {}).get("humidity")
+    margin = settings.get(get_day_night(settings), {}).get("humidity_margin")
+
+    if humidity <= target - margin:
+        mister.duty_u16(65535)
+        print("Mister ON")
+
+    elif humidity >= target:
+        mister.duty_u16(0)
+        print("Mister OFF")
